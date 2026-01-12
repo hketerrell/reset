@@ -1,0 +1,21 @@
+{
+  "id": "21-31-00",
+  "ataLine": "21",
+  "faultText": "CAB PR SYS 1(2) FAULT",
+  "faultCode": "CPC",
+  "signOffChapter": "21-31-00",
+  "expectedIndications": [
+    "Message clears after reset, or",
+    "Message returns (refer to official troubleshooting)."
+  ],
+  "cbs": [
+    {
+      "cbName": "D09",
+      "waitSeconds": 5
+    },
+    {
+      "cbName": "Y22",
+      "waitSeconds": 5
+    }
+  ]
+}
