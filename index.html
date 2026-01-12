@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fault Messages</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root { color-scheme: light; }
+    body { overscroll-behavior: none; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    mark.search-hit{background:#fde68a; padding:0 .12rem; border-radius:.2rem}
+
+    @media print {
+      #appHeader, #leftPane, #mobileDrawerOverlay, #addFaultFab, #manageBar, #sectionTabs, #sectionNav, #btnAddFault, #btnCopyLink, #btnPrint, #btnDrawer { display:none !important; }
+      body { overflow: visible !important; background: white !important; }
+      #contentPane { height: auto !important; }
+      #pageCard { box-shadow:none !important; border:none !important; }
+      #sectionBody { overflow: visible !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 overflow-hidden">
+  <div id="app" class="h-dvh overflow-hidden">
+
+    <!-- Header -->
+    <header id="appHeader" class="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <div class="mx-auto max-w-7xl px-3 sm:px-4">
+        <div class="flex items-center gap-2 py-2">
+          <button id="btnDrawer" class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50 active:bg-slate-100 sm:hidden" aria-label="Open fault list">
+            <span class="text-base leading-none">☰</span>
+            <span class="ml-2">Faults</span>
+          </button>
+
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-xs font-semibold uppercase tracking-wide text-slate-500">AIRBUS • AMM (Demo)</div>
+            <div class="truncate text-sm font-bold">Fault Messages — Chapter <span id="hdrChapter">21</span></div>
+          </div>
+
+          <div class="hidden sm:flex items-center gap-2">
+            <button id="btnAddFault" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">Add fault</button>
+            <button id="btnPrint" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">Print</button>
+            <button id="btnCopyLink" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">Copy link</button>
+          </div>
+        </div>
+
+        <div class="pb-3">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-2">
+              <span id="statusPill" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
+                <span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span>
+                Offline demo
+              </span>
+            </div>
+
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <div class="relative">
+                <input id="searchInput" class="w-full sm:w-96 rounded-lg border border-slate-200 bg-white px-3 py-2 pl-9 text-sm outline-none ring-0 focus:border-slate-300" placeholder="Search in current section…" />
+                <div class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="btnPrev" class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">← Prev</button>
+                <button id="btnNext" class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">Next →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Drawer overlay (mobile) -->
+    <div id="mobileDrawerOverlay" class="fixed inset-0 z-40 hidden bg-black/40"></div>
+
+    <!-- Main shell (fixed height, no scrolling) -->
+    <div class="mx-auto max-w-7xl h-[calc(100dvh-112px)] px-3 py-3 sm:px-4">
+      <div class="grid h-full grid-cols-1 gap-3 sm:grid-cols-[320px_1fr]">
+
+        <!-- Left pane / TOC -->
+        <aside id="leftPane" class="h-full">
+          <div class="h-full rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden">
+            <div class="border-b border-slate-200 px-4 py-3">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Fault messages</div>
+                  <div class="text-sm font-bold">Chapter <span id="tocChapter">21</span></div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button id="btnExportAll" class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold hover:bg-slate-50">Export</button>
+                  <button id="btnAddFaultToc" class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold hover:bg-slate-50">+ Add</button>
+                </div>
+              </div>
+              <div class="mt-2 text-[11px] text-slate-500">Built-ins can be loaded from <span class="mono">./fault/manifest.json</span>.</div>
+            </div>
+
+            <div class="p-3 border-b border-slate-200">
+              <label class="block">
+                <div class="text-xs font-semibold text-slate-700">Chapter</div>
+                <select id="chapterSelect" class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-300"></select>
+              </label>
+            </div>
+
+            <div class="p-3 border-b border-slate-200">
+              <input id="tocFilter" class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-slate-300" placeholder="Filter faults…" />
+            </div>
+
+            <!-- TOC can scroll internally; main page view does not scroll -->
+            <nav id="toc" class="flex-1 p-2 overflow-auto" aria-label="Fault list"></nav>
+
+            <input id="importJsonInput" type="file" accept="application/json" multiple class="hidden" />
+          </div>
+        </aside>
+
+        <!-- Content pane -->
+        <main id="contentPane" class="h-full min-w-0">
+          <div id="pageCard" class="h-full rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+            <div class="border-b border-slate-200 px-4 py-3">
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0">
+                  <div id="pageTitle" class="truncate text-base font-bold"></div>
+                  <div id="pageMeta" class="text-xs text-slate-600"></div>
+                </div>
+
+                <div class="flex items-center gap-2 sm:hidden">
+                  <button id="btnAddFaultMobile" class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">Add</button>
+                  <button id="btnPrintMobile" class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">Print</button>
+                  <button id="btnCopyLinkMobile" class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">Copy</button>
+                </div>
+              </div>
+
+              <!-- Manage bar (always visible) -->
+              <div id="manageBar" class="mt-3 flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+                <div id="manageText" class="text-slate-700 min-w-0"></div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button id="btnExportCurrent" class="rounded-lg border border-slate-200 bg-white px-2 py-1 font-semibold text-slate-800 hover:bg-slate-50">Export JSON</button>
+                  <button id="btnEditFault" class="rounded-lg border border-slate-200 bg-white px-2 py-1 font-semibold text-slate-800 hover:bg-slate-50">Edit</button>
+                  <button id="btnDeleteFault" class="hidden rounded-lg border border-rose-200 bg-white px-2 py-1 font-semibold text-rose-700 hover:bg-rose-50">Delete</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section tabs -->
+            <div id="sectionTabs" class="border-b border-slate-200 px-3 py-2">
+              <div class="inline-flex w-full rounded-xl border border-slate-200 bg-slate-50 p-1">
+                <button class="tabBtn flex-1 rounded-lg px-3 py-2 text-sm font-semibold" data-section="fault-message">Fault message</button>
+                <button class="tabBtn flex-1 rounded-lg px-3 py-2 text-sm font-semibold" data-section="procedure">Reset procedure</button>
+                <button class="tabBtn flex-1 rounded-lg px-3 py-2 text-sm font-semibold" data-section="sign-off">Sign off (Include Chapter)</button>
+              </div>
+            </div>
+
+            <!-- Section content (no scrolling) -->
+            <div class="flex-1 p-4 overflow-hidden">
+              <div id="sectionBody" class="h-full overflow-hidden"></div>
+            </div>
+
+            <!-- Section nav (no scrolling) -->
+            <div id="sectionNav" class="border-t border-slate-200 px-4 py-3">
+              <div class="flex items-center justify-between gap-2">
+                <button id="btnSectionPrev" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">← Section</button>
+                <div id="sectionLabel" class="text-xs font-semibold text-slate-600"></div>
+                <button id="btnSectionNext" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">Section →</button>
+              </div>
+            </div>
+          </div>
+        </main>
+
+      </div>
+    </div>
+
+    <!-- Floating add button (mobile) -->
+    <button id="addFaultFab" class="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-bold shadow-lg hover:bg-slate-50 sm:hidden" type="button">
+      <span class="text-base">＋</span>
+      Add fault
+    </button>
+
+    <!-- Add/Edit Fault Modal -->
+    <div id="modalOverlay" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-black/40" data-role="modal-close"></div>
+      <div class="absolute inset-x-0 bottom-0 mx-auto max-w-2xl rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:inset-0 sm:my-10 sm:rounded-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+          <div>
+            <div id="modalKicker" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Create fault</div>
+            <div id="modalTitle" class="text-sm font-bold">Add a fault message reset</div>
+          </div>
+          <button class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50" data-role="modal-close" type="button">Close</button>
+        </div>
+
+        <form id="faultForm" class="max-h-[70dvh] overflow-auto p-4">
+          <input type="hidden" name="_mode" value="create" />
+          <input type="hidden" name="_originalId" value="" />
+
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label class="block">
+              <div class="text-xs font-semibold text-slate-700">Page ID</div>
+              <input name="pageId" class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="21-90-01" required />
+              <div class="mt-1 text-xs text-slate-500">Used in the link hash (<span class="mono">#21-90-01</span>).</div>
+            </label>
+
+            <label class="block">
+              <div class="text-xs font-semibold text-slate-700">Chapter (ATA line 1)</div>
+              <input name="ataLine" class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="21" value="21" />
+            </label>
+
+            <label class="block sm:col-span-2">
+              <div class="text-xs font-semibold text-slate-700">Fault text (line 2)</div>
+              <input name="faultText" class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="VENT AVNCS SYS FAULT" required />
+            </label>
+
+            <label class="block sm:col-span-2">
+              <div class="text-xs font-semibold text-slate-700">Fault code / computer (line 3)</div>
+              <input name="faultCode" class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="AEVC" />
+            </label>
+
+            <label class="block sm:col-span-2">
+              <div class="text-xs font-semibold text-slate-700">Sign off chapter (Include Chapter)</div>
+              <input name="signOffChapter" class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="21" />
+              <div class="mt-1 text-xs text-slate-500">Shown in the Sign off tab (you can set it different from ATA line 1 if needed).</div>
+            </label>
+
+            <label class="block sm:col-span-2">
+              <div class="text-xs font-semibold text-slate-700">Expected indications (one per line)</div>
+              <textarea name="expectedIndications" rows="3" class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="Message clears after reset, or\nMessage returns (refer to official troubleshooting)."></textarea>
+              <div class="mt-1 text-xs text-slate-500">Shown as bullet points in the Fault message tab.</div>
+            </label>
+
+            <div class="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Circuit breakers to reset</div>
+                  <div class="text-xs text-slate-600">Add one or more C/Bs with a wait time (seconds). Leave blank to have no C/B procedure.</div>
+                </div>
+                <button id="btnAddCBRow" type="button" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold hover:bg-slate-50">+ Add C/B</button>
+              </div>
+
+              <div id="cbRows" class="mt-3 flex flex-col gap-2"></div>
+
+              <template id="cbRowTemplate">
+                <div class="cb-row grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-[1fr_160px_auto] sm:items-end">
+                  <label class="block">
+                    <div class="text-xs font-semibold text-slate-700">C/B name</div>
+                    <input data-role="cbName" class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" placeholder="Y17" />
+                  </label>
+                  <label class="block">
+                    <div class="text-xs font-semibold text-slate-700">Wait (seconds)</div>
+                    <input data-role="waitSeconds" type="number" min="0" step="1" class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm" value="5" />
+                  </label>
+                  <button data-role="remove" type="button" class="rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">Remove</button>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div class="text-xs text-slate-500">Custom faults are saved locally in this browser. Use Export to create <span class="mono">.json</span> files for <span class="mono">./fault/&lt;chapter&gt;/</span>.</div>
+            <div class="flex items-center gap-2">
+              <button id="btnModalSubmit" class="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700" type="submit">Create</button>
+              <button class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-50" data-role="modal-close" type="button">Cancel</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ----------------------------
+    // Storage (supports legacy format)
+    // ----------------------------
+    const STORAGE_KEY = 'amm_fault_pages_v1';
+    const DEFAULT_EXPECTED_INDICATIONS = [
+      'Message clears after reset, or',
+      'Message returns (refer to official troubleshooting).'
+    ];
+
+    function safeJsonParse(text, fallback){
+      try { return JSON.parse(text); } catch { return fallback; }
+    }
+
+    // Data shape we use now:
+    // {
+    //   id, ataLine, faultText, faultCode,
+    //   signOffChapter,
+    //   expectedIndications: string[],
+    //   cbs: [{ cbName, waitSeconds }]
+    // }
+    function loadCustomData(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const arr = safeJsonParse(raw || '[]', []);
+      if (!Array.isArray(arr)) return [];
+
+      const out = [];
+      for (const item of arr){
+        if (!item) continue;
+
+        // New-ish format
+        if (typeof item.id === 'string' && ('faultText' in item || 'ataLine' in item || 'cbs' in item || 'signOffChapter' in item || 'cbName' in item)){
+          out.push(cleanData(item));
+          continue;
+        }
+
+        // Some users may have data nested
+        if (item.data && typeof item.data === 'object' && typeof item.data.id === 'string'){
+          out.push(cleanData(item.data));
+          continue;
+        }
+
+        // Legacy format: { id, title, meta, sections }
+        if (typeof item.id === 'string' && Array.isArray(item.sections)){
+          const extracted = extractDataFromLegacyPage(item);
+          if (extracted) out.push(cleanData(extracted));
+          continue;
+        }
+      }
+
+      // Deduplicate by id, keep last
+      const m = new Map();
+      for (const d of out) m.set(d.id, d);
+      return Array.from(m.values());
+    }
+
+    function saveCustomData(dataArr){
+      const clean = (dataArr || []).map(cleanData);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+    }
+
+    function cleanCb(cb){
+      const cbName = String(cb?.cbName || cb?.name || '').trim();
+      const waitSeconds = Math.max(0, Number(cb?.waitSeconds ?? cb?.seconds ?? 5) || 0);
+      return { cbName, waitSeconds };
+    }
+
+    function cleanData(d){
+      const id = String(d?.id || '').trim();
+      const ataLine = String(d?.ataLine || '21').trim() || '21';
+      const faultText = String(d?.faultText || '').trim();
+      const faultCode = String(d?.faultCode || '').trim();
+      const signOffChapter = String(d?.signOffChapter || d?.signoffChapter || ataLine || '21').trim() || (ataLine || '21');
+
+      let expectedIndications = [];
+      if (Array.isArray(d?.expectedIndications)){
+        expectedIndications = d.expectedIndications.map(x => String(x || '').trim()).filter(Boolean);
+      } else if (typeof d?.expectedIndications === 'string'){
+        expectedIndications = String(d.expectedIndications)
+          .split('\n')
+          .map(s => s.trim())
+          .filter(Boolean);
+      }
+      if (!expectedIndications.length) expectedIndications = [...DEFAULT_EXPECTED_INDICATIONS];
+
+      let cbs = [];
+      if (Array.isArray(d?.cbs)){
+        cbs = d.cbs.map(cleanCb).filter(x => x.cbName);
+      } else {
+        // Back-compat single C/B fields
+        const cbName = String(d?.cbName || '').trim();
+        const waitSeconds = Math.max(0, Number(d?.waitSeconds ?? 5) || 0);
+        if (cbName) cbs = [{ cbName, waitSeconds }];
+      }
+
+      return { id, ataLine, faultText, faultCode, signOffChapter, expectedIndications, cbs };
+    }
+
+    function extractDataFromLegacyPage(p){
+      try {
+        const id = String(p.id || '').trim();
+        if (!id) return null;
+
+        // Try parse title like: "21-90-00 — TEXT (CODE)"
+        let faultText = '';
+        let faultCode = '';
+        const title = String(p.title || '');
+        const after = title.split(' — ')[1] || '';
+        const m = after.match(/^(.*?)(?:\s*\(([^)]+)\))?\s*$/);
+        if (m){
+          faultText = (m[1] || '').trim();
+          faultCode = (m[2] || '').trim();
+        }
+
+        let ataLine = '21';
+        let signOffChapter = '';
+        let cbName = '';
+        let waitSeconds = 5;
+        let cbs = [];
+
+        // Parse HTML sections for data-widget
+        const dp = new DOMParser();
+        const proc = (p.sections.find(s => s.key === 'procedure') || {}).html || '';
+        if (proc){
+          const doc = dp.parseFromString(proc, 'text/html');
+          const w = doc.querySelector('[data-widget="cb-multi-timer"], [data-widget="cb-timer"]');
+          if (w){
+            if (w.dataset.cbs){
+              const parsed = safeJsonParse(decodeURIComponent(w.dataset.cbs), []);
+              if (Array.isArray(parsed)) cbs = parsed.map(cleanCb).filter(x => x.cbName);
+            }
+            if (w.dataset.cb) cbName = w.dataset.cb;
+            if (w.dataset.seconds) waitSeconds = Math.max(0, Number(w.dataset.seconds) || 0);
+            if (w.dataset.ata) ataLine = w.dataset.ata;
+            if (w.dataset.fault) faultText = w.dataset.fault;
+            if (w.dataset.code) faultCode = w.dataset.code;
+          }
+        }
+
+        if (!cbs.length && cbName) cbs = [{ cbName: String(cbName).trim(), waitSeconds }];
+
+        // Fallback parse fault-message mono lines
+        const fm = (p.sections.find(s => s.key === 'fault-message') || {}).html || '';
+        if (fm){
+          const doc = dp.parseFromString(fm, 'text/html');
+          const mono = doc.querySelector('.mono');
+          if (mono){
+            const lines = mono.textContent.split('\n').map(s => s.trim()).filter(Boolean);
+            if (lines[0]) ataLine = lines[0];
+            if (lines[1]) faultText = lines[1];
+            if (lines[2]) faultCode = lines[2];
+          }
+        }
+
+        // Legacy had no explicit signOffChapter; default to ataLine
+        signOffChapter = signOffChapter || ataLine;
+
+        return { id, ataLine, faultText, faultCode, signOffChapter, cbs };
+      } catch {
+        return null;
+      }
+    }
+
+    // ----------------------------
+    // Helpers
+    // ----------------------------
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+    function escapeHtml(s='') {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[c]));
+    }
+
+    function normalizeText(s){
+      return (s || '').toLowerCase().trim();
+    }
+
+    function toastPill(text, color='sky'){
+      const pill = $('#statusPill');
+      if (!pill) return;
+      const old = pill.innerHTML;
+      const dot = color === 'emerald' ? 'bg-emerald-500' : color === 'amber' ? 'bg-amber-500' : 'bg-sky-500';
+      pill.innerHTML = `<span class="inline-block h-2 w-2 rounded-full ${dot}"></span> ${escapeHtml(text)}`;
+      setTimeout(() => pill.innerHTML = old, 1200);
+    }
+
+    function downloadFile(filename, text, type='application/json'){
+      const blob = new Blob([text], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    // Hash format: #21-90-00 or #21-90-00::procedure
+    function parseHash(){
+      const raw = (location.hash || '').replace(/^#/, '') || '';
+      const [pageId, anchor] = raw.split('::');
+      return { pageId: pageId || null, anchor: anchor || null };
+    }
+
+    function currentPageId(){
+      return parseHash().pageId;
+    }
+
+    // ----------------------------
+    // Drawer (mobile)
+    // ----------------------------
+    function setDrawerOpen(open){
+      const overlay = $('#mobileDrawerOverlay');
+      const pane = $('#leftPane');
+      const isDesktop = window.matchMedia('(min-width: 640px)').matches;
+      if (isDesktop) return;
+
+      if (open){
+        overlay.classList.remove('hidden');
+        pane.classList.remove('hidden');
+        pane.classList.add('fixed','inset-y-0','left-0','w-[88vw]','max-w-sm','z-50','p-3');
+      } else {
+        overlay.classList.add('hidden');
+        pane.classList.add('hidden');
+        pane.classList.remove('fixed','inset-y-0','left-0','w-[88vw]','max-w-sm','z-50','p-3');
+      }
+    }
+
+    // ----------------------------
+    // Page builder
+    // ----------------------------
+    function makeFaultPage(data, flags={}){
+      const { id, ataLine='21', faultText, faultCode='', signOffChapter='', expectedIndications=[], cbs=[] } = cleanData(data);
+      const codePart = faultCode ? ` (${faultCode})` : '';
+      const title = `${id} — ${faultText}${codePart}`;
+      const meta = 'Fault message reset (demo).';
+      const msgLines = [ataLine, faultText, faultCode].filter(v => (v || '').trim().length);
+
+      const chips = (cbs || []).map(cb => {
+        const name = escapeHtml(cb.cbName);
+        const s = Number(cb.waitSeconds) || 0;
+        return `<span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700"><span class="mono">${name}</span><span class="text-slate-500">${s}s</span></span>`;
+      }).join('');
+
+      const procedureHtml = (cbs || []).length ? `
+        <div class="h-full flex flex-col gap-3">
+          <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Circuit breakers</div>
+            <div class="mt-2 flex flex-wrap gap-2">${chips}</div>
+            <div class="mt-2 text-xs text-slate-500">Use the selector below to run a guided timer for each C/B.</div>
+          </div>
+
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4" data-widget="cb-multi-timer" data-cbs="${encodeURIComponent(JSON.stringify(cbs))}" data-fault="${escapeHtml(faultText)}" data-code="${escapeHtml(faultCode)}" data-ata="${escapeHtml(ataLine)}">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Guided timer</div>
+                <div data-role="headline" class="text-sm font-semibold text-slate-900">Select a circuit breaker</div>
+              </div>
+              <div class="text-xs text-slate-500">Demo</div>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-2" data-role="cb-list">
+              ${(cbs || []).map((cb, i) => `<button type="button" data-role="pick" data-index="${i}" class="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-slate-50"><span class="mono">${escapeHtml(cb.cbName)}</span></button>`).join('')}
+            </div>
+
+            <div class="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+              <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Reset steps (selected)</div>
+              <div data-role="step" class="mt-2 text-sm text-slate-800">Select a C/B above.</div>
+            </div>
+
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <button data-role="open" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50" disabled>Open C/B</button>
+              <button data-role="close" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50" disabled>Close C/B</button>
+              <button data-role="reset" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50" disabled>Reset</button>
+              <button data-role="copy" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">Copy steps</button>
+            </div>
+
+            <div class="mt-3">
+              <div class="flex items-center justify-between text-xs text-slate-600">
+                <div>Status: <span data-role="status" class="font-semibold text-slate-800">Idle</span></div>
+                <div>Timer: <span data-role="seconds" class="font-semibold text-slate-800">0</span>s</div>
+              </div>
+              <div class="mt-2 h-2 w-full overflow-hidden rounded-full border border-slate-200 bg-white">
+                <div data-role="bar" class="h-full bg-sky-500" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : `
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Reset procedure</div>
+          <div class="mt-2 text-sm text-slate-700">No circuit breaker steps specified for this fault.</div>
+        </div>
+      `;
+
+      const includeChap = (signOffChapter || ataLine || '21').trim() || '21';
+      const signoffHtml = `
+        <div class="rounded-xl border border-slate-200 bg-white p-4">
+          <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Sign off (Chapter)</div>
+          <div class="mt-2 text-sm text-slate-700">
+            <span class="font-semibold">Chapter ${escapeHtml(includeChap)}</span>
+          </div>
+          <div class="mt-3 flex items-center gap-2">
+            <button data-role="copy-signoff" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">Copy sign-off line</button>
+            <div class="text-xs text-slate-500">Copies: “Chapter ${escapeHtml(includeChap)}”</div>
+          </div>
+        </div>
+      `;
+
+      return {
+        id,
+        title,
+        meta,
+        data: cleanData(data),
+        custom: !!flags.custom,
+        builtIn: !!flags.builtIn,
+        sections: [
+          {
+            key: 'fault-message',
+            label: 'Fault message',
+            html: `
+              <div class="h-full flex flex-col gap-3">
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Message</div>
+                  <div class="mt-2 mono text-sm leading-6">${msgLines.map(escapeHtml).join('<br>')}</div>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Expected indications</div>
+                  <ul class="mt-2 list-disc pl-5 text-sm text-slate-700">
+                    ${(expectedIndications || []).map(x => `<li>${escapeHtml(x)}</li>`).join('')}
+                  </ul>
+                </div>
+              </div>
+            `
+          },
+          {
+            key: 'procedure',
+            label: 'Reset procedure',
+            html: `<div class="h-full">${procedureHtml}</div>`
+          },
+          {
+            key: 'sign-off',
+            label: 'Sign off (Include Chapter)',
+            html: `<div class="h-full">${signoffHtml}</div>`
+          }
+        ]
+      };
+    }
+
+    // ----------------------------
+    // Built-in storage: ./fault/<chapter>/<id>.json via ./fault/manifest.json
+    // ----------------------------
+    // Fallback demo data (used if fetch fails)
+    const FALLBACK_BUILTIN = [
+      {
+        id: '21-90-00',
+        ataLine: '21',
+        faultText: 'VENT AVNCS SYS FAULT',
+        faultCode: 'AEVC',
+        signOffChapter: '21',
+        expectedIndications: [...DEFAULT_EXPECTED_INDICATIONS],
+        cbs: [
+          { cbName: 'Y17', waitSeconds: 5 }
+        ]
+      }
+    ];
+
+    let BUILTIN_DATA = [...FALLBACK_BUILTIN];
+    let BUILTIN_CHAPTER_TITLES = new Map();
+
+    async function tryLoadBuiltInsFromFolder(){
+      // Supports either:
+      // 1) { chapters: [{ chapter, title?, files: ["21-90-00.json"] }] }
+      // 2) { faultFiles: ["21/21-90-00.json"] } (paths allowed)
+      try {
+        const res = await fetch('./fault/manifest.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('No manifest');
+        const manifest = await res.json();
+
+        const out = [];
+        BUILTIN_CHAPTER_TITLES = new Map();
+
+        if (Array.isArray(manifest?.chapters)){
+          for (const ch of manifest.chapters){
+            const chapter = String(ch?.chapter || '').trim();
+            if (!chapter) continue;
+            const title = String(ch?.title || '').trim();
+            if (title) BUILTIN_CHAPTER_TITLES.set(chapter, title);
+
+            const files = Array.isArray(ch?.files) ? ch.files : [];
+            for (const file of files){
+              const fn = String(file || '').trim();
+              if (!fn) continue;
+              const path = `./fault/${encodeURIComponent(chapter)}/${fn}`;
+              const fr = await fetch(path, { cache: 'no-store' });
+              if (!fr.ok) continue;
+              const data = cleanData(await fr.json());
+              if (!data.id) continue;
+              // Ensure chapter matches folder if not explicitly set
+              if (!data.ataLine) data.ataLine = chapter;
+              out.push(data);
+            }
+          }
+        } else if (Array.isArray(manifest?.faultFiles)){
+          for (const file of manifest.faultFiles){
+            const path = String(file || '').trim();
+            if (!path) continue;
+            const fr = await fetch(`./fault/${path.replace(/^\.\/?fault\//, '')}`, { cache: 'no-store' });
+            if (!fr.ok) continue;
+            const data = cleanData(await fr.json());
+            if (data.id) out.push(data);
+          }
+        } else {
+          throw new Error('Bad manifest format');
+        }
+
+        if (out.length){
+          BUILTIN_DATA = out;
+          $('#statusPill').innerHTML = '<span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span> Loaded from ./fault';
+          return true;
+        }
+
+        throw new Error('No files');
+      } catch {
+        BUILTIN_DATA = [...FALLBACK_BUILTIN];
+        return false;
+      }
+    }
+
+    // ----------------------------
+    // Data
+    // ----------------------------
+    let CUSTOM_DATA = [];
+
+    function hasBuiltIn(id){
+      return BUILTIN_DATA.some(b => b.id === id);
+    }
+
+    function allPages(){
+      const map = new Map();
+      // built-in first, then custom overrides
+      for (const b of BUILTIN_DATA){
+        map.set(b.id, makeFaultPage(b, { custom: false, builtIn: true }));
+      }
+      for (const c of CUSTOM_DATA){
+        if (!c || !c.id) continue;
+        map.set(c.id, makeFaultPage(c, { custom: true, builtIn: hasBuiltIn(c.id) }));
+      }
+      return Array.from(map.values()).sort((a,b) => a.id.localeCompare(b.id));
+    }
+
+    let currentChapter = null; // e.g., '21'
+
+    function chapterOfPage(p){
+      return String(p?.data?.ataLine || '21').trim() || '21';
+    }
+
+    function chapterTitle(ch){
+      const t = BUILTIN_CHAPTER_TITLES.get(ch);
+      return t ? `${ch} — ${t}` : ch;
+    }
+
+    function chapters(){
+      const set = new Set(allPages().map(chapterOfPage));
+      return Array.from(set).sort((a,b) => a.localeCompare(b));
+    }
+
+    function setChapter(ch, navigate=true){
+      const list = chapters();
+      const next = list.includes(ch) ? ch : (list[0] || '21');
+      currentChapter = next;
+      updateChapterLabels();
+      syncChapterSelect();
+      renderTOC();
+
+      if (navigate){
+        const first = visiblePages()[0];
+        if (first) goToPage(first.id);
+      } else {
+        // Ensure current page still visible
+        const id = currentPageId();
+        if (id){
+          const isVisible = visiblePages().some(p => p.id === id);
+          if (!isVisible){
+            const first = visiblePages()[0];
+            if (first) goToPage(first.id);
+          }
+        }
+      }
+    }
+
+    function visiblePages(){
+      const list = allPages();
+      if (!currentChapter) return list;
+      return list.filter(p => chapterOfPage(p) === currentChapter);
+    }
+
+    function currentPageIndex(){
+      const id = currentPageId();
+      const list = visiblePages();
+      const idx = list.findIndex(p => p.id === id);
+      return idx >= 0 ? idx : 0;
+    }
+
+    function idInUse(id, excludeId=null){
+      const target = String(id || '').trim();
+      if (!target) return false;
+      const list = allPages();
+      return list.some(p => p.id === target && p.id !== excludeId);
+    }
+
+    // ----------------------------
+    // Render
+    // ----------------------------
+    let currentSectionKey = 'fault-message';
+
+    function updateChapterLabels(){
+      const ch = currentChapter || '21';
+      $('#hdrChapter').textContent = ch;
+      $('#tocChapter').textContent = ch;
+    }
+
+    function syncChapterSelect(){
+      const sel = $('#chapterSelect');
+      if (!sel) return;
+      const list = chapters();
+
+      const oldVal = sel.value;
+      sel.innerHTML = '';
+
+      for (const ch of list){
+        const opt = document.createElement('option');
+        opt.value = ch;
+        opt.textContent = chapterTitle(ch);
+        sel.appendChild(opt);
+      }
+
+      if (!currentChapter){
+        currentChapter = list[0] || '21';
+      }
+
+      sel.value = list.includes(currentChapter) ? currentChapter : (list[0] || '21');
+      if (oldVal && oldVal !== sel.value) {
+        // no-op; keep UI consistent
+      }
+
+      updateChapterLabels();
+    }
+
+    function setActiveTOC(){
+      const id = currentPageId();
+      $$('.toc-item').forEach(a => {
+        const active = a.dataset.pageId === id;
+        a.classList.toggle('bg-slate-100', active);
+        a.classList.toggle('border-slate-200', active);
+      });
+    }
+
+    function renderTOC(){
+      const toc = $('#toc');
+      toc.innerHTML = '';
+
+      for (const p of visiblePages()){
+        const a = document.createElement('a');
+        a.href = '#' + p.id;
+        a.className = 'toc-item block rounded-lg border border-transparent px-2 py-2 text-sm hover:bg-slate-50';
+        a.dataset.pageId = p.id;
+        a.innerHTML = `
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="truncate font-semibold text-slate-800">${escapeHtml(p.id)}</div>
+              <div class="truncate text-xs text-slate-600">${escapeHtml((p.title || '').replace(p.id + ' — ', ''))}</div>
+            </div>
+            <div class="shrink-0 text-xs text-slate-400">›</div>
+          </div>
+        `;
+        a.addEventListener('click', () => setDrawerOpen(false));
+        toc.appendChild(a);
+      }
+
+      setActiveTOC();
+      filterTOC($('#tocFilter').value || '');
+    }
+
+    function updateNavButtons(){
+      const idx = currentPageIndex();
+      const list = visiblePages();
+      $('#btnPrev').disabled = idx === 0;
+      $('#btnNext').disabled = idx === list.length - 1;
+      $('#btnPrev').classList.toggle('opacity-50', idx === 0);
+      $('#btnNext').classList.toggle('opacity-50', idx === list.length - 1);
+    }
+
+    function setActiveTab(){
+      $$('.tabBtn').forEach(btn => {
+        const active = btn.dataset.section === currentSectionKey;
+        btn.classList.toggle('bg-white', active);
+        btn.classList.toggle('shadow-sm', active);
+        btn.classList.toggle('text-slate-900', active);
+        btn.classList.toggle('text-slate-600', !active);
+      });
+
+      const page = visiblePages()[currentPageIndex()] || visiblePages()[0];
+      const sec = page.sections.find(s => s.key === currentSectionKey) || page.sections[0];
+      $('#sectionLabel').textContent = sec.label;
+
+      const idx = page.sections.findIndex(s => s.key === currentSectionKey);
+      $('#btnSectionPrev').disabled = idx <= 0;
+      $('#btnSectionNext').disabled = idx >= page.sections.length - 1;
+      $('#btnSectionPrev').classList.toggle('opacity-50', idx <= 0);
+      $('#btnSectionNext').classList.toggle('opacity-50', idx >= page.sections.length - 1);
+    }
+
+    function renderSection(){
+      const page = visiblePages()[currentPageIndex()] || visiblePages()[0];
+      const sec = page.sections.find(s => s.key === currentSectionKey) || page.sections[0];
+      $('#sectionBody').innerHTML = sec.html;
+      setActiveTab();
+      initEnhancements();
+      clearSearchHighlights(false);
+    }
+
+    function renderManageBar(page){
+      const manageText = $('#manageText');
+      const btnDelete = $('#btnDeleteFault');
+
+      if (page.custom && page.builtIn){
+        manageText.innerHTML = '<span class="font-semibold">Custom override</span> (saved in this browser)';
+        btnDelete.textContent = 'Delete override';
+        btnDelete.classList.remove('hidden');
+      } else if (page.custom){
+        manageText.innerHTML = '<span class="font-semibold">Custom fault</span> (saved in this browser)';
+        btnDelete.textContent = 'Delete';
+        btnDelete.classList.remove('hidden');
+      } else {
+        manageText.innerHTML = '<span class="font-semibold">Built-in fault</span> (edit creates a local override)';
+        btnDelete.classList.add('hidden');
+      }
+    }
+
+    function renderPage(){
+      const page = visiblePages()[currentPageIndex()] || visiblePages()[0];
+      if (!page) return;
+
+      $('#pageTitle').textContent = page.title;
+      $('#pageMeta').textContent = page.meta || '';
+      renderManageBar(page);
+
+      if (!page.sections.some(s => s.key === currentSectionKey)){
+        currentSectionKey = page.sections[0].key;
+      }
+
+      setActiveTOC();
+      updateNavButtons();
+      renderSection();
+    }
+
+    // ----------------------------
+    // Enhancements
+    // ----------------------------
+    function initEnhancements(){
+      initCBMultiTimerWidgets();
+      initCopySignoff();
+    }
+
+    function initCopySignoff(){
+      const btn = $('[data-role="copy-signoff"]', $('#sectionBody'));
+      if (!btn || btn.dataset.bound === '1') return;
+      btn.dataset.bound = '1';
+
+      const page = visiblePages()[currentPageIndex()] || visiblePages()[0];
+      const chap = (page.data.signOffChapter || page.data.ataLine || '21').trim() || '21';
+      const line = `Chapter ${chap}`;
+
+      btn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(line);
+          const old = btn.textContent;
+          btn.textContent = 'Copied';
+          setTimeout(() => btn.textContent = old, 900);
+        } catch {
+          alert('Copy failed.');
+        }
+      });
+    }
+
+    function initCBMultiTimerWidgets(){
+      const widgets = $$('[data-widget="cb-multi-timer"]', $('#sectionBody'));
+      for (const widget of widgets){
+        if (widget.dataset.bound === '1') continue;
+        widget.dataset.bound = '1';
+
+        const cbs = safeJsonParse(decodeURIComponent(widget.dataset.cbs || '[]'), []).map(cleanCb).filter(x => x.cbName);
+
+        const headlineEl = widget.querySelector('[data-role="headline"]');
+        const stepEl = widget.querySelector('[data-role="step"]');
+        const pickBtns = Array.from(widget.querySelectorAll('[data-role="pick"]'));
+
+        const btnOpen = widget.querySelector('[data-role="open"]');
+        const btnClose = widget.querySelector('[data-role="close"]');
+        const btnReset = widget.querySelector('[data-role="reset"]');
+        const btnCopy = widget.querySelector('[data-role="copy"]');
+        const statusEl = widget.querySelector('[data-role="status"]');
+        const secondsEl = widget.querySelector('[data-role="seconds"]');
+        const barEl = widget.querySelector('[data-role="bar"]');
+
+        let selected = -1;
+        let timer = null;
+        let t0 = null;
+        let durationMs = 0;
+        let seconds = 0;
+        let cb = '';
+
+        function setStatus(text){ statusEl.textContent = text; }
+        function setSeconds(s){ secondsEl.textContent = String(s); }
+        function setBar(pct){ barEl.style.width = Math.max(0, Math.min(100, pct)) + '%'; }
+        function stopTimer(){ if (timer) clearInterval(timer); timer = null; t0 = null; }
+
+        function syncStepCard(){
+          if (selected < 0){
+            headlineEl.textContent = 'Select a circuit breaker';
+            stepEl.textContent = 'Select a C/B above.';
+            return;
+          }
+          headlineEl.textContent = `C/B ${cb} wait: ${seconds} seconds`;
+          stepEl.innerHTML = `<div class="mono text-sm leading-6">Open the C/B ${escapeHtml(cb)}.<br>After ${seconds} seconds, close the C/B ${escapeHtml(cb)}.</div>`;
+        }
+
+        function reset(){
+          stopTimer();
+          setStatus('Idle');
+          setSeconds(seconds);
+          setBar(0);
+          const enabled = selected >= 0;
+          btnOpen.disabled = !enabled;
+          btnClose.disabled = true;
+          btnReset.disabled = !enabled;
+        }
+
+        function setSelected(i){
+          selected = i;
+          const item = cbs[selected];
+          cb = item?.cbName || '';
+          seconds = Math.max(0, Number(item?.waitSeconds ?? 0) || 0);
+          durationMs = seconds * 1000;
+
+          pickBtns.forEach((b, idx) => {
+            const active = idx === selected;
+            b.classList.toggle('bg-slate-900', active);
+            b.classList.toggle('text-white', active);
+            b.classList.toggle('border-slate-900', active);
+            b.classList.toggle('bg-white', !active);
+            b.classList.toggle('text-slate-800', !active);
+          });
+
+          syncStepCard();
+          reset();
+        }
+
+        function startWait(){
+          stopTimer();
+          if (selected < 0) return;
+
+          if (seconds <= 0){
+            setStatus('No wait required — close C/B.');
+            btnOpen.disabled = true;
+            btnClose.disabled = false;
+            setSeconds(0);
+            setBar(100);
+            return;
+          }
+
+          t0 = performance.now();
+          setStatus(`C/B ${cb} OPEN — waiting ${seconds} seconds…`);
+          btnOpen.disabled = true;
+          btnClose.disabled = true;
+
+          timer = setInterval(() => {
+            const elapsed = performance.now() - t0;
+            const remain = Math.max(0, durationMs - elapsed);
+            const remainS = Math.ceil(remain / 1000);
+            setSeconds(remainS);
+            setBar((elapsed / durationMs) * 100);
+
+            if (remain <= 0){
+              stopTimer();
+              setSeconds(0);
+              setBar(100);
+              setStatus(`${seconds} seconds elapsed — close C/B ${cb}.`);
+              btnClose.disabled = false;
+            }
+          }, 50);
+        }
+
+        btnOpen.addEventListener('click', startWait);
+
+        btnClose.addEventListener('click', () => {
+          stopTimer();
+          setStatus(`C/B ${cb} CLOSED — reset complete.`);
+          btnClose.disabled = true;
+          btnOpen.disabled = false;
+          setBar(100);
+        });
+
+        btnReset.addEventListener('click', reset);
+
+        btnCopy.addEventListener('click', async () => {
+          const ataLine = widget.dataset.ata || '21';
+          const faultText = widget.dataset.fault || 'FAULT';
+          const faultCode = widget.dataset.code || '';
+          const lines = [ataLine, faultText, faultCode].filter(v => (v || '').trim().length).join('\n');
+
+          const steps = cbs.map(x => `Open the C/B ${x.cbName}.\nAfter ${Number(x.waitSeconds)||0} seconds, close the C/B ${x.cbName}.`).join('\n\n');
+          const text = `${lines}\n\n${steps}`;
+
+          try {
+            await navigator.clipboard.writeText(text);
+            const old = btnCopy.textContent;
+            btnCopy.textContent = 'Copied';
+            setTimeout(() => btnCopy.textContent = old, 900);
+          } catch {
+            alert('Copy failed.');
+          }
+        });
+
+        pickBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const i = Number(btn.dataset.index);
+            if (!Number.isFinite(i)) return;
+            setSelected(i);
+          });
+        });
+
+        // Initialize
+        if (cbs.length){
+          setSelected(0);
+        } else {
+          btnOpen.disabled = true;
+          btnClose.disabled = true;
+          btnReset.disabled = true;
+          setSeconds(0);
+          setBar(0);
+          setStatus('No C/B steps');
+        }
+      }
+    }
+
+    // ----------------------------
+    // Search (current section only)
+    // ----------------------------
+    function clearSearchHighlights(reRender=true){
+      if (!reRender) return;
+      const page = visiblePages()[currentPageIndex()] || visiblePages()[0];
+      const sec = page.sections.find(s => s.key === currentSectionKey) || page.sections[0];
+      $('#sectionBody').innerHTML = sec.html;
+      initEnhancements();
+    }
+
+    function highlightQuery(q){
+      clearSearchHighlights(true);
+      const query = normalizeText(q);
+      if (!query) return;
+
+      const root = $('#sectionBody');
+      const re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode(node){
+          if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          if (node.parentElement && ['SCRIPT','STYLE'].includes(node.parentElement.tagName)) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+
+      for (const textNode of nodes){
+        const text = textNode.nodeValue;
+        if (!re.test(text)) continue;
+        re.lastIndex = 0;
+
+        const frag = document.createDocumentFragment();
+        let last = 0;
+        for (const match of text.matchAll(re)){
+          const start = match.index;
+          const end = start + match[0].length;
+          if (start > last) frag.appendChild(document.createTextNode(text.slice(last, start)));
+          const mark = document.createElement('mark');
+          mark.className = 'search-hit';
+          mark.textContent = text.slice(start, end);
+          frag.appendChild(mark);
+          last = end;
+        }
+        if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+        textNode.parentNode.replaceChild(frag, textNode);
+      }
+    }
+
+    // ----------------------------
+    // TOC filter
+    // ----------------------------
+    function filterTOC(value){
+      const q = normalizeText(value);
+      $$('.toc-item').forEach(a => {
+        const hay = normalizeText(a.textContent);
+        a.classList.toggle('hidden', q && !hay.includes(q));
+      });
+    }
+
+    // ----------------------------
+    // Routing / navigation
+    // ----------------------------
+    function goToPage(id){
+      location.hash = '#' + id;
+    }
+
+    function setSection(key, pushHash=true){
+      const page = visiblePages()[currentPageIndex()] || visiblePages()[0];
+      if (!page.sections.some(s => s.key === key)) key = page.sections[0].key;
+      currentSectionKey = key;
+      renderSection();
+      if (pushHash){
+        history.replaceState(null, '', '#' + currentPageId() + '::' + key);
+      }
+    }
+
+    function handleHashChange(){
+      const { pageId, anchor } = parseHash();
+      const listAll = allPages();
+      const targetId = pageId || (listAll[0]?.id || null);
+      if (!targetId) return;
+
+      const pageExists = listAll.some(p => p.id === targetId);
+      if (!pageExists){
+        // If invalid hash, go to first visible (or first overall)
+        const first = visiblePages()[0] || listAll[0];
+        if (first) location.hash = '#' + first.id;
+        return;
+      }
+
+      // Sync chapter to the page's chapter
+      const page = listAll.find(p => p.id === targetId);
+      const pageChapter = chapterOfPage(page);
+      if (!currentChapter || currentChapter !== pageChapter){
+        currentChapter = pageChapter;
+        updateChapterLabels();
+        syncChapterSelect();
+      }
+
+      renderTOC();
+      renderPage();
+
+      if (anchor){
+        setSection(anchor, false);
+      } else {
+        currentSectionKey = 'fault-message';
+        renderSection();
+      }
+
+      $('#searchInput').value = '';
+    }
+
+    // ----------------------------
+    // Copy link
+    // ----------------------------
+    function copyDeepLink(){
+      const url = new URL(location.href);
+      navigator.clipboard.writeText(url.toString()).then(() => {
+        toastPill('Link copied');
+      }).catch(() => alert('Copy failed.'));
+    }
+
+    // ----------------------------
+    // Export
+    // ----------------------------
+    function exportCurrent(){
+      const page = visiblePages()[currentPageIndex()] || visiblePages()[0];
+      if (!page) return;
+      const data = cleanData(page.data);
+      const ch = String(data.ataLine || '21').trim() || '21';
+      downloadFile(`${data.id}.json`, JSON.stringify(data, null, 2));
+      toastPill(`Exported ${data.id}.json`, 'amber');
+      // Note: user can place it into ./fault/<chapter>/
+    }
+
+    function exportAll(){
+      const list = allPages();
+      const byChap = new Map();
+      for (const p of list){
+        const d = cleanData(p.data);
+        const ch = String(d.ataLine || '21').trim() || '21';
+        if (!byChap.has(ch)) byChap.set(ch, []);
+        byChap.get(ch).push(d);
+      }
+
+      const chaptersArr = Array.from(byChap.entries()).sort((a,b) => a[0].localeCompare(b[0])).map(([ch, arr]) => ({
+        chapter: ch,
+        title: BUILTIN_CHAPTER_TITLES.get(ch) || '',
+        files: arr.map(d => `${d.id}.json`)
+      }));
+
+      const manifest = {
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        chapters: chaptersArr
+      };
+
+      downloadFile('manifest.json', JSON.stringify(manifest, null, 2));
+      for (const [ch, arr] of byChap.entries()){
+        for (const d of arr){
+          downloadFile(`${d.id}.json`, JSON.stringify(d, null, 2));
+        }
+      }
+
+      toastPill('Export started', 'amber');
+    }
+
+    // ----------------------------
+    // Modal (Add/Edit)
+    // ----------------------------
+    function addCBRow(cbName='', waitSeconds=5){
+      const container = $('#cbRows');
+      const tpl = $('#cbRowTemplate');
+      const frag = tpl.content.cloneNode(true);
+      const row = frag.querySelector('.cb-row');
+      const nameInput = frag.querySelector('[data-role="cbName"]');
+      const secInput = frag.querySelector('[data-role="waitSeconds"]');
+      const btnRemove = frag.querySelector('[data-role="remove"]');
+
+      nameInput.value = cbName;
+      secInput.value = String(Math.max(0, Number(waitSeconds) || 0));
+
+      btnRemove.addEventListener('click', () => row.remove());
+
+      container.appendChild(frag);
+    }
+
+    function setCBRows(cbs){
+      const container = $('#cbRows');
+      container.innerHTML = '';
+      const list = (Array.isArray(cbs) ? cbs : []).map(cleanCb).filter(x => x.cbName);
+      if (list.length){
+        for (const cb of list) addCBRow(cb.cbName, cb.waitSeconds);
+      } else {
+        // Keep one empty row to make adding fast
+        addCBRow('', 5);
+      }
+    }
+
+    function openModal(mode='create', data=null, originalId=''){
+      const form = $('#faultForm');
+      form._mode.value = mode;
+      form._originalId.value = originalId || '';
+
+      $('#modalKicker').textContent = mode === 'edit' ? 'Edit fault' : 'Create fault';
+      $('#modalTitle').textContent = mode === 'edit' ? 'Update fault message reset' : 'Add a fault message reset';
+      $('#btnModalSubmit').textContent = mode === 'edit' ? 'Save' : 'Create';
+
+      if (data){
+        const d = cleanData(data);
+        form.pageId.value = d.id || '';
+        form.ataLine.value = d.ataLine || (currentChapter || '21');
+        form.faultText.value = d.faultText || '';
+        form.faultCode.value = d.faultCode || '';
+        form.signOffChapter.value = d.signOffChapter || d.ataLine || (currentChapter || '21');
+        form.expectedIndications.value = (d.expectedIndications || []).join('\n');
+        setCBRows(d.cbs || []);
+      } else {
+        form.reset();
+        form.ataLine.value = currentChapter || '21';
+        form.signOffChapter.value = currentChapter || '21';
+        form.expectedIndications.value = DEFAULT_EXPECTED_INDICATIONS.join('\n');
+        setCBRows([]);
+      }
+
+      $('#modalOverlay').classList.remove('hidden');
+      setTimeout(() => {
+        const el = $('#faultForm [name="pageId"]');
+        if (el) el.focus();
+      }, 50);
+    }
+
+    function closeModal(){
+      $('#modalOverlay').classList.add('hidden');
+    }
+
+    function upsertCustomData(oldId, newData){
+      const newId = newData.id;
+      // Remove old record if renaming
+      if (oldId && oldId !== newId){
+        CUSTOM_DATA = CUSTOM_DATA.filter(d => d.id !== oldId);
+      }
+
+      const idx = CUSTOM_DATA.findIndex(d => d.id === newId);
+      if (idx >= 0) CUSTOM_DATA[idx] = newData;
+      else CUSTOM_DATA.push(newData);
+
+      saveCustomData(CUSTOM_DATA);
+    }
+
+    function deleteCustomById(id){
+      CUSTOM_DATA = CUSTOM_DATA.filter(d => d.id !== id);
+      saveCustomData(CUSTOM_DATA);
+    }
+
+    function readCBRowsFromModal(){
+      const rows = $$('.cb-row', $('#cbRows'));
+      const cbs = [];
+      for (const row of rows){
+        const name = String($('[data-role="cbName"]', row)?.value || '').trim();
+        const seconds = Math.max(0, Number($('[data-role="waitSeconds"]', row)?.value || 0) || 0);
+        if (!name) continue;
+        cbs.push({ cbName: name, waitSeconds: seconds });
+      }
+      return cbs;
+    }
+
+    function submitFaultForm(form){
+      const mode = String(form._mode.value || 'create');
+      const originalId = String(form._originalId.value || '').trim();
+
+      const pageId = String(form.pageId.value || '').trim();
+      const ataLine = String(form.ataLine.value || '').trim() || (currentChapter || '21');
+      const faultText = String(form.faultText.value || '').trim();
+      const faultCode = String(form.faultCode.value || '').trim();
+      const signOffChapter = String(form.signOffChapter.value || '').trim() || ataLine || '21';
+      const expectedIndicationsText = String(form.expectedIndications.value || '');
+      const expectedIndications = expectedIndicationsText
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean);
+      const cbs = readCBRowsFromModal();
+
+      if (!pageId || !faultText) throw new Error('Page ID and Fault text are required.');
+
+      const data = cleanData({ id: pageId, ataLine, faultText, faultCode, signOffChapter, expectedIndications, cbs });
+
+      if (mode === 'create'){
+        if (idInUse(pageId, null)) throw new Error('That Page ID already exists.');
+        upsertCustomData('', data);
+        toastPill('Fault added');
+        syncChapterSelect();
+        renderTOC();
+        currentChapter = data.ataLine;
+        updateChapterLabels();
+        goToPage(data.id);
+        closeModal();
+        return;
+      }
+
+      // edit
+      const exclude = originalId || null;
+      if (idInUse(pageId, exclude)) throw new Error('That Page ID already exists.');
+
+      upsertCustomData(originalId || pageId, data);
+      toastPill('Saved');
+      syncChapterSelect();
+      renderTOC();
+      closeModal();
+
+      // Navigate to new id if renamed
+      if ((originalId || pageId) !== pageId) goToPage(pageId);
+      else renderPage();
+    }
+
+    function openEditCurrent(){
+      const page = visiblePages()[currentPageIndex()] || visiblePages()[0];
+      if (!page) return;
+      openModal('edit', page.data, page.id);
+    }
+
+    function deleteCurrentFault(){
+      const id = currentPageId();
+      const page = allPages().find(p => p.id === id);
+      if (!page || !page.custom) return;
+
+      const msg = page.builtIn
+        ? 'Delete this local override and revert to the built-in fault?'
+        : 'Delete this custom fault page?';
+      if (!confirm(msg)) return;
+
+      deleteCustomById(id);
+      toastPill('Deleted');
+      renderTOC();
+
+      // If built-in exists, stay on same id (it will now show base)
+      if (hasBuiltIn(id)){
+        goToPage(id);
+      } else {
+        const first = visiblePages()[0] || allPages()[0];
+        if (first) goToPage(first.id);
+      }
+    }
+
+    // ----------------------------
+    // Import JSON (optional)
+    // ----------------------------
+    async function importJsonFiles(fileList){
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+
+      let imported = 0;
+      for (const f of files){
+        try {
+          const text = await f.text();
+          const obj = safeJsonParse(text, null);
+          if (!obj) continue;
+
+          // Accept either single fault JSON or a list
+          const candidates = Array.isArray(obj) ? obj : [obj];
+          for (const c of candidates){
+            const d = cleanData(c);
+            if (!d.id || !d.faultText) continue;
+            upsertCustomData('', d);
+            imported++;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (imported){
+        CUSTOM_DATA = loadCustomData();
+        syncChapterSelect();
+        renderTOC();
+        toastPill(`Imported ${imported}`);
+      }
+    }
+
+    // ----------------------------
+    // Init
+    // ----------------------------
+    async function init(){
+      // Load built-ins (if available)
+      await tryLoadBuiltInsFromFolder();
+
+      // Load custom overrides
+      CUSTOM_DATA = loadCustomData();
+
+      // Setup chapters
+      syncChapterSelect();
+
+      // Render
+      renderTOC();
+
+      // If no hash, go to first page in current chapter
+      if (!currentPageId()){
+        const first = visiblePages()[0] || allPages()[0];
+        if (first) location.hash = '#' + first.id;
+      }
+
+      handleHashChange();
+
+      // Drawer
+      $('#btnDrawer').addEventListener('click', () => setDrawerOpen(true));
+      $('#mobileDrawerOverlay').addEventListener('click', () => setDrawerOpen(false));
+
+      // Buttons
+      $('#btnPrint').addEventListener('click', () => window.print());
+      $('#btnPrintMobile').addEventListener('click', () => window.print());
+      $('#btnCopyLink').addEventListener('click', copyDeepLink);
+      $('#btnCopyLinkMobile').addEventListener('click', copyDeepLink);
+
+      // Add fault
+      $('#btnAddFault').addEventListener('click', () => openModal('create'));
+      $('#btnAddFaultToc').addEventListener('click', () => openModal('create'));
+      $('#btnAddFaultMobile').addEventListener('click', () => openModal('create'));
+      $('#addFaultFab').addEventListener('click', () => openModal('create'));
+
+      // Export
+      $('#btnExportAll').addEventListener('click', exportAll);
+      $('#btnExportCurrent').addEventListener('click', exportCurrent);
+
+      // Edit/Delete
+      $('#btnEditFault').addEventListener('click', openEditCurrent);
+      $('#btnDeleteFault').addEventListener('click', deleteCurrentFault);
+
+      // Modal close
+      $$('[data-role="modal-close"]').forEach(el => el.addEventListener('click', closeModal));
+
+      // Add C/B row
+      $('#btnAddCBRow').addEventListener('click', () => addCBRow('', 5));
+
+      // Form submit
+      $('#faultForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        try {
+          submitFaultForm(e.target);
+        } catch (err){
+          alert(err.message || 'Could not save fault.');
+        }
+      });
+
+      // Prev/Next page (within chapter)
+      $('#btnPrev').addEventListener('click', () => {
+        const idx = currentPageIndex();
+        const list = visiblePages();
+        if (idx > 0) goToPage(list[idx-1].id);
+      });
+      $('#btnNext').addEventListener('click', () => {
+        const idx = currentPageIndex();
+        const list = visiblePages();
+        if (idx < list.length-1) goToPage(list[idx+1].id);
+      });
+
+      // Tabs
+      $$('.tabBtn').forEach(btn => {
+        btn.addEventListener('click', () => setSection(btn.dataset.section));
+      });
+
+      // Section prev/next
+      $('#btnSectionPrev').addEventListener('click', () => {
+        const page = visiblePages()[currentPageIndex()] || visiblePages()[0];
+        const idx = page.sections.findIndex(s => s.key === currentSectionKey);
+        if (idx > 0) setSection(page.sections[idx-1].key);
+      });
+      $('#btnSectionNext').addEventListener('click', () => {
+        const page = visiblePages()[currentPageIndex()] || visiblePages()[0];
+        const idx = page.sections.findIndex(s => s.key === currentSectionKey);
+        if (idx < page.sections.length-1) setSection(page.sections[idx+1].key);
+      });
+
+      // Search
+      let searchTimer = null;
+      $('#searchInput').addEventListener('input', (e) => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => highlightQuery(e.target.value), 120);
+      });
+
+      // TOC filter
+      $('#tocFilter').addEventListener('input', (e) => filterTOC(e.target.value));
+
+      // Chapter select
+      $('#chapterSelect').addEventListener('change', (e) => {
+        const ch = String(e.target.value || '').trim();
+        setChapter(ch, true);
+      });
+
+      // Import (hidden input)
+      const importInput = $('#importJsonInput');
+      importInput.addEventListener('change', async (e) => {
+        await importJsonFiles(e.target.files);
+        e.target.value = '';
+      });
+
+      // Hash change
+      window.addEventListener('hashchange', handleHashChange);
+
+      // Keyboard
+      window.addEventListener('keydown', (e) => {
+        if (e.key === '/' && document.activeElement !== $('#searchInput')){
+          e.preventDefault();
+          $('#searchInput').focus();
+          return;
+        }
+        if (e.key.toLowerCase() === 'n'){
+          const idx = currentPageIndex();
+          const list = visiblePages();
+          if (idx < list.length-1) goToPage(list[idx+1].id);
+          return;
+        }
+        if (e.key.toLowerCase() === 'p'){
+          const idx = currentPageIndex();
+          const list = visiblePages();
+          if (idx > 0) goToPage(list[idx-1].id);
+          return;
+        }
+        if (e.key === 'Escape'){
+          setDrawerOpen(false);
+          $('#searchInput').blur();
+          closeModal();
+        }
+      });
+
+      // Responsive
+      window.addEventListener('resize', () => {
+        const isDesktop = window.matchMedia('(min-width: 640px)').matches;
+        if (isDesktop){
+          $('#mobileDrawerOverlay').classList.add('hidden');
+          $('#leftPane').classList.remove('hidden');
+          $('#leftPane').classList.remove('fixed','inset-y-0','left-0','w-[88vw]','max-w-sm','z-50','p-3');
+        } else {
+          setDrawerOpen(false);
+        }
+      });
+
+      // Right-click export quick shortcut: shift+e to export current
+      window.addEventListener('keydown', (e) => {
+        if (e.shiftKey && e.key.toLowerCase() === 'e'){
+          exportCurrent();
+        }
+      });
+
+      // Long-press / advanced: click export button with Alt to trigger import
+      $('#btnExportAll').addEventListener('click', (e) => {
+        if (e.altKey){
+          importInput.click();
+        }
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
